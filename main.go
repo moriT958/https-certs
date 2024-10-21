@@ -6,15 +6,32 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"log"
 	"math/big"
 	"net"
+	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/net/http2"
 )
+
+func main() {
+	generateCertAndKey()
+
+	s := http.Server{
+		Addr:    "127.0.0.1:8080",
+		Handler: &customHandler{},
+	}
+
+	log.Println(http2.ConfigureServer(&s, &http2.Server{}))
+	log.Println(s.ListenAndServeTLS("cert.pem", "key.pem"))
+	// cert.pemはCAが作成した証明書ではないので、普通にアクセスするとエラーになる
+}
 
 // 自己署名のSSL/TLS証明書とRSA秘密鍵を生成
 // 本番では認証局から取得する
-func main() {
+func generateCertAndKey() {
 
 	// 大きな乱数を生成して、証明書のシリアル番号として使用
 	max := new(big.Int).Lsh(big.NewInt(1), 128)
